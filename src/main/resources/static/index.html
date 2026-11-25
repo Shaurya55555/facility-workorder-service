@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Work Orders</title>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  <style>
+    body { font: 14px/1.4 system-ui, sans-serif; max-width: 980px; margin: 2rem auto; padding: 0 1rem; color: #1f2933; }
+    h1 { font-size: 1.3rem; }
+    form, .filters { display: flex; gap: .5rem; flex-wrap: wrap; margin-bottom: 1rem; align-items: center; }
+    input, select, button { padding: .4rem .6rem; font: inherit; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; padding: .45rem .5rem; border-bottom: 1px solid #e4e7eb; }
+    .pill { padding: .1rem .5rem; border-radius: 999px; font-size: .8rem; background: #e4e7eb; }
+    .OPEN { background: #fde8e8; } .ASSIGNED { background: #fef3c7; }
+    .IN_PROGRESS { background: #dbeafe; } .DONE { background: #d1fae5; }
+    .err { color: #b42318; } .muted { color: #6b7280; }
+  </style>
+</head>
+<body>
+<div id="app">
+  <h1>Facility work orders</h1>
+
+  <form v-if="!token" @submit.prevent="login">
+    <input v-model="username" placeholder="username" autocomplete="username">
+    <input v-model="password" type="password" placeholder="password" autocomplete="current-password">
+    <button>Log in</button>
+    <span class="err">{{ error }}</span>
+  </form>
+
+  <template v-else>
+    <div class="filters">
+      <span class="muted">{{ username }} ({{ role }})</span>
+      <select v-model="status" @change="load(0)">
+        <option value="">any status</option>
+        <option v-for="s in ['OPEN','ASSIGNED','IN_PROGRESS','DONE']" :key="s">{{ s }}</option>
+      </select>
+      <select v-model="priority" @change="load(0)">
+        <option value="">any priority</option>
+        <option v-for="p in ['LOW','MEDIUM','HIGH','CRITICAL']" :key="p">{{ p }}</option>
+      </select>
+      <button @click="logout">Log out</button>
+      <span class="err">{{ error }}</span>
+    </div>
+
+    <table>
+      <thead><tr><th>#</th><th>Title</th><th>Asset</th><th>Priority</th><th>Status</th><th>Technician</th></tr></thead>
+      <tbody>
+        <tr v-for="w in page.content" :key="w.id">
+          <td>{{ w.id }}</td><td>{{ w.title }}</td><td>{{ w.assetName }}</td>
+          <td>{{ w.priority }}</td>
+          <td><span class="pill" :class="w.status">{{ w.status }}</span></td>
+          <td>{{ w.assignedTo || '-' }}</td>
+        </tr>
+        <tr v-if="!page.content.length"><td colspan="6" class="muted">No work orders.</td></tr>
+      </tbody>
+    </table>
+
+    <p class="muted">
+      <button :disabled="page.page === 0" @click="load(page.page - 1)">Prev</button>
+      page {{ page.page + 1 }} / {{ Math.max(page.totalPages, 1) }} ({{ page.totalElements }} total)
+      <button :disabled="page.page + 1 >= page.totalPages" @click="load(page.page + 1)">Next</button>
+    </p>
+  </template>
+</div>
+
+<script>
+  const { createApp } = Vue;
+  createApp({
+    data: () => ({
+      username: '', password: '', token: sessionStorage.getItem('token') || '',
+      role: sessionStorage.getItem('role') || '', status: '', priority: '', error: '',
+      page: { content: [], page: 0, totalPages: 0, totalElements: 0 }
+    }),
+    mounted() { if (this.token) this.load(0); },
+    methods: {
+      async login() {
+        this.error = '';
+        const res = await fetch('/api/auth/login', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: this.username, password: this.password })
+        });
+        if (!res.ok) { this.error = 'Login failed'; return; }
+        const body = await res.json();
+        this.token = body.accessToken; this.role = body.role;
+        sessionStorage.setItem('token', this.token); sessionStorage.setItem('role', this.role);
+        this.load(0);
+      },
+      async load(p) {
+        const q = new URLSearchParams({ page: p, size: 10 });
+        if (this.status) q.set('status', this.status);
+        if (this.priority) q.set('priority', this.priority);
+        const res = await fetch('/api/work-orders?' + q, { headers: { Authorization: 'Bearer ' + this.token } });
+        if (res.status === 401) { this.logout(); this.error = 'Session expired'; return; }
+        this.page = await res.json();
+      },
+      logout() {
+        this.token = ''; this.role = ''; sessionStorage.clear();
+        this.page = { content: [], page: 0, totalPages: 0, totalElements: 0 };
+      }
+    }
+  }).mount('#app');
+</script>
+</body>
+</html>

@@ -1,0 +1,33 @@
+spring:
+  application:
+    name: facility-workorder-service
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/workorders}
+    username: ${DB_USER:workorders}
+    password: ${DB_PASSWORD:workorders}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate   # schema is owned by Flyway, Hibernate only verifies it
+  flyway:
+    enabled: true
+
+app:
+  jwt:
+    # override JWT_SECRET in any real deployment (min 32 bytes)
+    secret: ${JWT_SECRET:dev-only-secret-change-me-it-must-be-32-bytes-or-more}
+    expiry-minutes: 60
+  seed:
+    admin-username: ${ADMIN_USERNAME:admin}
+    admin-password: ${ADMIN_PASSWORD:Admin#12345}
+    demo-users: ${SEED_DEMO_USERS:false}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html

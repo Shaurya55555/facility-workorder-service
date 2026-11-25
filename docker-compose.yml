@@ -1,0 +1,33 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: workorders
+      POSTGRES_USER: workorders
+      POSTGRES_PASSWORD: workorders
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U workorders -d workorders"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  app:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_URL: jdbc:postgresql://db:5432/workorders
+      DB_USER: workorders
+      DB_PASSWORD: workorders
+      JWT_SECRET: ${JWT_SECRET:-local-compose-secret-change-me-it-is-32+bytes}
+      SEED_DEMO_USERS: "true"        # creates manager1 / tech1 / tech2 (password Password123!)
+    ports:
+      - "8080:8080"
+
+volumes:
+  pgdata:
