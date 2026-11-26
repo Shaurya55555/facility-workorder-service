@@ -8,6 +8,8 @@ A manager assigns a technician, who moves the order through a strict status flow
 **Stack:** Java 21, Spring Boot 3.3, Spring Data JPA, PostgreSQL 16, Flyway, Spring Security + JWT (jjwt),
 Bean Validation, springdoc OpenAPI, JUnit 5, Mockito, Testcontainers, Docker, GitHub Actions.
 
+**Live demo:** https://facility-workorder-service.onrender.com (Swagger UI at `/swagger-ui.html`, demo login `manager1` / `tech1` with password `Password123!`). Free tier: the first request after idle can take ~50 s.
+
 ## Status flow and roles
 
 ```
