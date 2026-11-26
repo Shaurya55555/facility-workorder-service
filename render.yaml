@@ -1,0 +1,32 @@
+# Render Blueprint: one free Postgres + one Docker web service built from ./Dockerfile
+databases:
+  - name: workorders-db
+    plan: free
+    databaseName: workorders
+    user: workorders
+
+services:
+  - type: web
+    name: facility-workorder-service
+    runtime: docker
+    plan: free
+    healthCheckPath: /actuator/health
+    envVars:
+      - key: DB_HOST
+        fromDatabase: {name: workorders-db, property: host}
+      - key: DB_PORT
+        fromDatabase: {name: workorders-db, property: port}
+      - key: DB_NAME
+        fromDatabase: {name: workorders-db, property: database}
+      - key: DB_USER
+        fromDatabase: {name: workorders-db, property: user}
+      - key: DB_PASSWORD
+        fromDatabase: {name: workorders-db, property: password}
+      - key: JWT_SECRET
+        generateValue: true
+      - key: ADMIN_PASSWORD
+        generateValue: true
+      - key: SEED_DEMO_USERS
+        value: "true"
+      - key: JAVA_TOOL_OPTIONS
+        value: "-Xmx300m -XX:+UseSerialGC"
